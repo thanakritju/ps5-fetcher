@@ -13,7 +13,7 @@ type LineService struct {
 }
 
 func NewLineService() *LineService {
-	recipientId := os.Getenv("LINE_RECIPANT_ID")
+	recipientId := os.Getenv("LINE_RECIPIENT_ID")
 	bot, err := linebot.New(os.Getenv("CHANNEL_SECRET"), os.Getenv("CHANNEL_TOKEN"))
 	if err != nil {
 		log.Fatal(err)
