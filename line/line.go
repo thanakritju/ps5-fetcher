@@ -23,6 +23,7 @@ func NewLineService() *LineService {
 }
 
 func (s LineService) SendMessage(message string) {
+	log.Print("Sending the message to Line")
 	_, err := s.bot.PushMessage(s.recipientId, linebot.NewTextMessage(message)).Do()
 	if err != nil {
 		log.Fatal(err)

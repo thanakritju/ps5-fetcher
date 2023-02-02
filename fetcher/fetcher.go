@@ -3,6 +3,7 @@ package fetcher
 import (
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"ps5-fetcher/line"
@@ -24,16 +25,16 @@ func NewFetcherService(lineService *line.LineService) *FetcherService {
 
 func (s FetcherService) Run() {
 	for _, url := range s.targetUrls {
-		fmt.Printf("making http request to: %s\n", url)
+		log.Printf("Making http request to: %s\n", url)
 		resp, err := http.Get(url)
 		if err != nil {
-			fmt.Printf("error making http request: %s\n", err)
+			log.Printf("Error making http request: %s\n", err)
 			os.Exit(1)
 		}
 		defer resp.Body.Close()
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			fmt.Printf("error parsing http response: %s\n", err)
+			log.Printf("Error parsing http response: %s\n", err)
 			os.Exit(1)
 		}
 
