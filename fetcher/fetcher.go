@@ -1,46 +1,68 @@
 package fetcher
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"ps5-fetcher/line"
 	"regexp"
-	"strings"
 )
 
 type FetcherService struct {
-	targetUrls   []string
-	keywordRegex *regexp.Regexp
-	lineService  *line.LineService
+	targets     Targets
+	lineService *line.LineService
+}
+
+type Targets struct {
+	Targets []struct {
+		URL     string `json:"url"`
+		Pattern string `json:"pattern"`
+	} `json:"targets"`
 }
 
 func NewFetcherService(lineService *line.LineService) *FetcherService {
-	targetUrls := strings.Split(os.Getenv("TARGET_URLS"), ",")
-	keywordRegex := regexp.MustCompile(os.Getenv("KEYWORD_REGEX"))
-	return &FetcherService{targetUrls: targetUrls, keywordRegex: keywordRegex, lineService: lineService}
+	jsonFile, err := os.Open("config.json")
+	if err != nil {
+		fmt.Println(err)
+	}
+	byteValue, err := ioutil.ReadAll(jsonFile)
+	if err != nil {
+		fmt.Println(err)
+	}
+	var targets Targets
+	json.Unmarshal(byteValue, &targets)
+	log.Printf("Loaded config: %s\n", byteValue)
+	return &FetcherService{targets: targets, lineService: lineService}
 }
 
 func (s FetcherService) Run() {
-	for _, url := range s.targetUrls {
-		log.Printf("Making http request to: %s\n", url)
-		resp, err := http.Get(url)
-		if err != nil {
-			log.Printf("Error making http request: %s\n", err)
-			os.Exit(1)
-		}
-		defer resp.Body.Close()
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			log.Printf("Error parsing http response: %s\n", err)
-			os.Exit(1)
-		}
+	for _, t := range s.targets.Targets {
+		body := get(t.URL)
 
-		if s.keywordRegex.Match(body) {
-			message := fmt.Sprintf("Found matching at: %s", url)
+		match, _ := regexp.Match(t.Pattern, body)
+		if match {
+			message := fmt.Sprintf("Found matching at: %s", t.URL)
 			s.lineService.SendMessage(message)
 		}
 	}
+}
+
+func get(url string) []byte {
+	log.Printf("Making http request to: %s\n", url)
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Printf("Error making http request: %s\n", err)
+		os.Exit(1)
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("Error parsing http response: %s\n", err)
+		os.Exit(1)
+	}
+	return body
 }
